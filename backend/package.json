@@ -25,7 +25,6 @@
     "@types/pino": "^6.3.4",
     "@zapo-js/store-sqlite": "^1.2.0",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^13.0.3",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "date-fns": "^2.16.1",
@@ -50,6 +49,7 @@
     "sequelize-typescript": "^1.1.0",
     "socket.io": "^3.0.5",
     "uuid": "^8.3.2",
+    "wa-store-migrate": "^0.1.1",
     "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#main",
     "ws": "^8.21.3",
     "yup": "^0.32.8",
@@ -94,6 +94,7 @@
   },
   "optionalDependencies": {
     "@zapo-js/media-utils": "^1.0.0",
+    "better-sqlite3": "^12.11.1",
     "sharp": "^0.35.4"
   }
 }

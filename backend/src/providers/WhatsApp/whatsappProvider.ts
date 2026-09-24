@@ -46,7 +46,8 @@ const provider = process.env.WHATSAPP_PROVIDER || "wwebjs";
 
 const providersMap: Record<string, WhatsappProvider> = {
   wwebjs: WhatsappWebJsProvider,
-  zapo: ZapoProvider
+  zapo: ZapoProvider,
+  whaileys: ZapoProvider
 };
 
 const whatsappProvider = providersMap[provider];

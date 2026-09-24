@@ -139,8 +139,8 @@ uno nuevo.
 
 ## Requisitos
 
-- **Node.js 14+** para el proveedor `wwebjs`, **Node.js 20.9+** para el proveedor `zapo`
-  (la CI y el Dockerfile del backend todavía compilan en Node 14)
+- **Node.js 14+** para el proveedor `wwebjs`, **Node.js 22+** para el proveedor `zapo`
+  (la CI y el Dockerfile del backend compilan en Node 22)
 - **MySQL 5.7+ o MariaDB 10.6+**
 - **Docker** (opcional, pero es la forma más rápida de levantar la base de datos)
 - Un servidor Linux si vas a producción. Estas instrucciones asumen Ubuntu 20.04+.
@@ -473,7 +473,7 @@ sudo certbot --nginx
 |---|---|---|
 | Cómo conecta | Puppeteer controlando WhatsApp Web | Protocolo WebSocket directo |
 | Consumo de memoria | Alto, un Chrome por sesión | Bajo |
-| Dependencias de sistema | Chrome + varios paquetes `lib*` | Node 20.9+ y SQLite (`better-sqlite3`) |
+| Dependencias de sistema | Chrome + varios paquetes `lib*` | Node 22+ y SQLite (`better-sqlite3`) |
 | Madurez en este repositorio | Por defecto, en producción durante años | Más nuevo, en desarrollo activo |
 
 Cambia entre ellos con `WHATSAPP_PROVIDER` en `backend/.env`.
@@ -510,6 +510,22 @@ npm run build
 pm2 restart all
 echo "Actualización finalizada. ¡Disfrútalo!"
 ```
+
+### Si vienes del proveedor `whaileys`
+
+El proveedor `whaileys` fue reemplazado por `zapo`. Las conexiones emparejadas con `whaileys`
+siguen funcionando solas, sin escanear un código QR nuevo:
+
+1. Actualiza el servidor a Node.js 22+ (requisito de `better-sqlite3`).
+2. Si quieres, define `WHATSAPP_PROVIDER=zapo` en `backend/.env`. El valor antiguo `whaileys`
+   sigue funcionando y apunta al mismo proveedor.
+3. Ejecuta el script de actualización de arriba. Cuando el backend se reinicia, la sesión de cada
+   conexión se copia de la base de datos a `.zapo_auth/state.sqlite` y la conexión vuelve sin un
+   código QR nuevo.
+
+La copia lee la columna `session` de `Whatsapps` y la tabla `WppKeys`, así que conserva `WppKeys`
+hasta que todas las conexiones vuelvan. Redis ya no se lee y puede apagarse. Una conexión cuya
+sesión no se pueda copiar muestra un código QR nuevo, como en un emparejamiento desde cero.
 
 ## Estado del proyecto
 

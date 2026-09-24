@@ -135,8 +135,8 @@ If a contact writes again within 2 hours and has no pending or open ticket, the 
 
 ## Requirements
 
-- **Node.js 14+** for the `wwebjs` provider, **Node.js 20.9+** for the `zapo` provider
-  (CI and the backend Dockerfile still build on Node 14)
+- **Node.js 14+** for the `wwebjs` provider, **Node.js 22+** for the `zapo` provider
+  (the backend CI and Dockerfile build on Node 22)
 - **MySQL 5.7+ or MariaDB 10.6+**
 - **Docker** (optional, but the fastest way to get a database up)
 - A Linux server if you are deploying to production. Ubuntu 20.04+ is what these
@@ -466,7 +466,7 @@ sudo certbot --nginx
 |---|---|---|
 | How it connects | Puppeteer driving WhatsApp Web | Direct WebSocket protocol |
 | Memory footprint | Heavy, one Chrome per session | Light |
-| System dependencies | Chrome + many `lib*` packages | Node 20.9+ and SQLite (`better-sqlite3`) |
+| System dependencies | Chrome + many `lib*` packages | Node 22+ and SQLite (`better-sqlite3`) |
 | Maturity in this repo | Default, in production for years | Newer, in active development |
 
 Switch between them with `WHATSAPP_PROVIDER` in `backend/.env`.
@@ -503,6 +503,22 @@ npm run build
 pm2 restart all
 echo "Update finished. Enjoy!"
 ```
+
+### Coming from the `whaileys` provider
+
+The `whaileys` provider was replaced by `zapo`. Connections paired under `whaileys` carry
+over on their own, without scanning a new QR code:
+
+1. Move the server to Node.js 22+ (a `better-sqlite3` requirement).
+2. Optionally, set `WHATSAPP_PROVIDER=zapo` in `backend/.env`. The old `whaileys` value keeps
+   working and points to the same provider.
+3. Run the update script above. When the backend restarts, each connection's session is copied
+   from the database into `.zapo_auth/state.sqlite` and the connection comes back without a new
+   QR code.
+
+The copy reads the `session` column of `Whatsapps` and the `WppKeys` table, so keep `WppKeys`
+until every connection is back online. Redis is no longer read and can be turned off. A
+connection whose session can't be copied shows a new QR code, like a fresh pairing.
 
 ## Project status
 

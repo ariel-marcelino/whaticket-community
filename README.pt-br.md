@@ -137,8 +137,8 @@ pendente ou aberto, o ticket **fechado** mais recente é reaberto em vez de um n
 
 ## Requisitos
 
-- **Node.js 14+** para o provider `wwebjs`, **Node.js 20.9+** para o provider `zapo`
-  (a CI e o Dockerfile do backend ainda compilam em Node 14)
+- **Node.js 14+** para o provider `wwebjs`, **Node.js 22+** para o provider `zapo`
+  (a CI e o Dockerfile do backend compilam em Node 22)
 - **MySQL 5.7+ ou MariaDB 10.6+**
 - **Docker** (opcional, mas é o jeito mais rápido de subir o banco)
 - Um servidor Linux, se for para produção. Estas instruções assumem Ubuntu 20.04+.
@@ -467,7 +467,7 @@ sudo certbot --nginx
 |---|---|---|
 | Como conecta | Puppeteer controlando o WhatsApp Web | Protocolo WebSocket direto |
 | Consumo de memória | Alto, um Chrome por sessão | Baixo |
-| Dependências de sistema | Chrome + vários pacotes `lib*` | Node 20.9+ e SQLite (`better-sqlite3`) |
+| Dependências de sistema | Chrome + vários pacotes `lib*` | Node 22+ e SQLite (`better-sqlite3`) |
 | Maturidade neste repositório | Padrão, em produção há anos | Mais novo, em desenvolvimento ativo |
 
 Alterne entre eles com `WHATSAPP_PROVIDER` no `backend/.env`.
@@ -504,6 +504,21 @@ npm run build
 pm2 restart all
 echo "Atualização concluída. Aproveite!"
 ```
+
+### Vindo do provider `whaileys`
+
+O provider `whaileys` foi substituído pelo `zapo`. Conexões pareadas no `whaileys` continuam
+funcionando sozinhas, sem escanear um QR code novo:
+
+1. Suba o servidor para Node.js 22+ (exigência da `better-sqlite3`).
+2. Se quiser, defina `WHATSAPP_PROVIDER=zapo` no `backend/.env`. O valor antigo `whaileys`
+   continua funcionando e aponta para o mesmo provider.
+3. Rode o script de atualização acima. Quando o backend reinicia, a sessão de cada conexão é
+   copiada do banco para o `.zapo_auth/state.sqlite` e a conexão volta sem QR code novo.
+
+A cópia lê a coluna `session` de `Whatsapps` e a tabela `WppKeys`, então mantenha a `WppKeys`
+até todas as conexões voltarem. O Redis não é mais lido e pode ser desligado. Uma conexão cuja
+sessão não puder ser copiada mostra um QR code novo, como num pareamento do zero.
 
 ## Status do projeto
 

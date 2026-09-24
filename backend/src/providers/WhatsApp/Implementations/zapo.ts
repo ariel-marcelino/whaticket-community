@@ -17,7 +17,10 @@ import {
   WaSendMediaMessage,
   WaStore
 } from "zapo-js";
+import { bufferJsonReviver, snapshot } from "wa-store-migrate";
+import type { LibInput } from "wa-store-migrate";
 
+import sequelize from "../../../database";
 import Whatsapp from "../../../models/Whatsapp";
 import { getIO } from "../../../libs/socket";
 import { logger } from "../../../utils/logger";
@@ -43,6 +46,15 @@ import {
 } from "../../../handlers/handleWhatsappEvents";
 
 type MessageContent = NonNullable<WaIncomingMessageEvent["message"]>;
+
+type BaileysAppStateSyncKeys = NonNullable<
+  LibInput<"baileys">["keys"]["app-state-sync-key"]
+>;
+
+interface WppKeyRow {
+  keyId: string;
+  value: string;
+}
 
 const MEDIA_MESSAGE_TYPES: MessageType[] = [
   "image",
@@ -620,10 +632,65 @@ const buildProxyOptions = () => {
   return { ws: new HttpsProxyAgent(proxyUrl) };
 };
 
+const loadWhaileysAppStateSyncKeys = async (
+  connectionId: number
+): Promise<BaileysAppStateSyncKeys> => {
+  const rows = (await sequelize.getQueryInterface().select(null, "WppKeys", {
+    where: { connectionId, type: "app-state-sync-key" }
+  })) as WppKeyRow[];
+
+  return rows.reduce(
+    (keys, { keyId, value }) => ({
+      ...keys,
+      [keyId]: JSON.parse(value, bufferJsonReviver)
+    }),
+    {}
+  );
+};
+
+const importWhaileysSession = async (whatsapp: Whatsapp): Promise<void> => {
+  if (!whatsapp.session) return;
+
+  const storeSession = getStore().session(String(whatsapp.id));
+  if (await storeSession.auth.load()) return;
+
+  try {
+    const creds = JSON.parse(whatsapp.session, bufferJsonReviver);
+    const appStateSyncKeys = await loadWhaileysAppStateSyncKeys(whatsapp.id);
+
+    const { credentials, appState } = snapshot.to(
+      "zapo",
+      snapshot.from("baileys", {
+        creds,
+        keys: { "app-state-sync-key": appStateSyncKeys }
+      })
+    );
+
+    await storeSession.auth.save(credentials);
+
+    if (appState?.keys.length) {
+      await storeSession.appState.upsertSyncKeys(
+        appState.keys as unknown as Parameters<
+          typeof storeSession.appState.upsertSyncKeys
+        >[0]
+      );
+    }
+
+    logger.info({ info: "Imported whaileys session", sessionId: whatsapp.id });
+  } catch (err) {
+    logger.error({
+      info: "Error importing whaileys session",
+      err,
+      sessionId: whatsapp.id
+    });
+  }
+};
+
 const init = async (whatsapp: Whatsapp): Promise<void> => {
   const sessionId = whatsapp.id;
 
   await removeSession(sessionId);
+  await importWhaileysSession(whatsapp);
 
   const proxy = buildProxyOptions();
   const media = buildMediaOptions();
